@@ -10,4 +10,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . /app
 
-CMD ["python", "Aayu"]
+CMD ["python", "-m", "__main__.py"]
