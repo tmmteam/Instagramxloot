@@ -3,11 +3,11 @@ import os
 import time
 import logging
 import requests
-from datetime import datetime, timedelta
-
+from datetime import timedelta
 from telegram import Update
 from telegram.ext import Updater, CommandHandler, CallbackContext
 
+# Config values
 from config import TELEGRAM_TOKEN, GROUP_ID, LIKE_API, VIEW_API, COOLDOWN_HOURS, STORAGE_FILE
 
 logging.basicConfig(level=logging.INFO)
@@ -28,6 +28,7 @@ storage = load_storage()
 
 
 def check_group(update: Update):
+    """Check if message is from allowed group."""
     return update.effective_chat.id == GROUP_ID
 
 
@@ -41,26 +42,15 @@ def handle_claim(update: Update, context: CallbackContext, claim_type: str, api_
     now = time.time()
 
     user_data = storage.get(user_id, {"like": 0, "view": 0})
-    
-@bot.message_handler(commands=['start'])
-def start(message):
-    bot.send_message(
-        message.chat.id,
-        "WELCOME TO THE FAMILY OF AAYU\n\n"
-        "GET UNLIMITED LIKES AND VIEWS\n\n"
-        "GO TO @TMM_SUPPORT_CHAT\n"
-        "AND CLAIM\n\n"
-        "USE\n"
-        "/Like {url}\n"
-        "/View {url}\n\n"
-        "@MOH_MAYA_OFFICIAL"
-    )
-    
+
     # Check if both claims used
     like_ok = now >= user_data.get("like", 0)
     view_ok = now >= user_data.get("view", 0)
     if not like_ok and not view_ok:
-        update.message.reply_text("⏰ **Daily Limit Reached!**\n\nYou've used your free claim for today (2/2)", parse_mode="Markdown")
+        update.message.reply_text(
+            "⏰ **Daily Limit Reached!**\n\nYou've used your free claim for today (2/2)",
+            parse_mode="Markdown",
+        )
         return
 
     # Cooldown check for this type
@@ -104,10 +94,33 @@ def view_command(update: Update, context: CallbackContext):
     handle_claim(update, context, "view", VIEW_API)
 
 
+def start_command(update: Update, context: CallbackContext):
+    if not check_group(update):
+        return
+    update.message.reply_text(
+        "WELCOME TO THE FAMILY OF AAYU\n\n"
+        "GET UNLIMITED LIKES AND VIEWS\n\n"
+        "GO TO @TMM_SUPPORT_CHAT\n"
+        "AND CLAIM\n\n"
+        "USE\n"
+        "/like {url}\n"
+        "/view {url}\n\n"
+        "AAYU (@MOH_MAYA_OFFICIAL)"
+    )
+
+
+def ping_command(update: Update, context: CallbackContext):
+    if not check_group(update):
+        return
+    update.message.reply_text("🏓 Pong!")
+
+
 def main():
     updater = Updater(TELEGRAM_TOKEN, use_context=True)
     dp = updater.dispatcher
 
+    dp.add_handler(CommandHandler("start", start_command))
+    dp.add_handler(CommandHandler("ping", ping_command))
     dp.add_handler(CommandHandler("like", like_command))
     dp.add_handler(CommandHandler("view", view_command))
 
